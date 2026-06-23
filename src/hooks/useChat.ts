@@ -26,15 +26,32 @@ export function useChat() {
     return chatRef.current;
   }
 
+  async function sendWithRetry(text: string, attempts = 5): Promise<string> {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const result = await getChat().sendMessage(text);
+        return result.response.text();
+      } catch (err: unknown) {
+        const is503 = err instanceof Error && err.message.includes('503');
+        if (is503 && i < attempts - 1) {
+          await new Promise(res => setTimeout(res, 5000));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error('Max retries reached');
+  }
+
   async function send(text: string) {
     setMessages(prev => [...prev, { id: `u-${Date.now()}`, role: 'user', text }]);
     setLoading(true);
 
     try {
-      const result = await getChat().sendMessage(text);
+      const reply = await sendWithRetry(text);
       setMessages(prev => [
         ...prev,
-        { id: `m-${Date.now()}`, role: 'model', text: result.response.text() },
+        { id: `m-${Date.now()}`, role: 'model', text: reply },
       ]);
     } catch (err) {
       console.error('[CosapIA] Gemini API error:', err);
