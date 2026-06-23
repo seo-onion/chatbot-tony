@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
-import type { ChatSession } from '@google/generative-ai';
-import { geminiModel } from '../lib/gemini';
+import { useState } from 'react';
+import { groq, GROQ_MODEL } from '../lib/groq';
+import systemPrompt from '../../system-prompt.md?raw';
 
 export type Message = {
   id: string;
@@ -17,23 +17,21 @@ const WELCOME: Message = {
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [loading, setLoading] = useState(false);
-  const chatRef = useRef<ChatSession | null>(null);
 
-  function getChat(): ChatSession {
-    if (!chatRef.current) {
-      chatRef.current = geminiModel.startChat({ history: [] });
-    }
-    return chatRef.current;
-  }
-
-  async function sendWithRetry(text: string, attempts = 5): Promise<string> {
+  async function sendWithRetry(
+    chatHistory: { role: 'system' | 'user' | 'assistant'; content: string }[],
+    attempts = 5
+  ): Promise<string> {
     for (let i = 0; i < attempts; i++) {
       try {
-        const result = await getChat().sendMessage(text);
-        return result.response.text();
+        const response = await groq.chat.completions.create({
+          messages: chatHistory,
+          model: GROQ_MODEL,
+        });
+        return response.choices[0]?.message?.content || '';
       } catch (err: unknown) {
-        const is503 = err instanceof Error && err.message.includes('503');
-        if (is503 && i < attempts - 1) {
+        const isTransient = err instanceof Error && (err.message.includes('503') || err.message.includes('429'));
+        if (isTransient && i < attempts - 1) {
           await new Promise(res => setTimeout(res, 5000));
           continue;
         }
@@ -44,17 +42,27 @@ export function useChat() {
   }
 
   async function send(text: string) {
-    setMessages(prev => [...prev, { id: `u-${Date.now()}`, role: 'user', text }]);
+    const newUserMessage: Message = { id: `u-${Date.now()}`, role: 'user', text };
+    setMessages(prev => [...prev, newUserMessage]);
     setLoading(true);
 
     try {
-      const reply = await sendWithRetry(text);
+      const chatHistory = [
+        { role: 'system' as const, content: systemPrompt },
+        ...messages.map(m => ({
+          role: m.role === 'model' ? ('assistant' as const) : ('user' as const),
+          content: m.text,
+        })),
+        { role: 'user' as const, content: text },
+      ];
+
+      const reply = await sendWithRetry(chatHistory);
       setMessages(prev => [
         ...prev,
         { id: `m-${Date.now()}`, role: 'model', text: reply },
       ]);
     } catch (err) {
-      console.error('[CosapIA] Gemini API error:', err);
+      console.error('[CosapIA] Groq API error:', err);
       setMessages(prev => [
         ...prev,
         { id: `e-${Date.now()}`, role: 'model', text: 'Ocurrió un error. Por favor intenta nuevamente.' },

@@ -3,3 +3,6 @@ dist
 .env.local
 .env.*.local
 *.local
+.playwright-mcp
+*.pdf
+*.png
