@@ -6,7 +6,7 @@ export function Header() {
       </div>
       <div className="min-w-0">
         <p className="text-white font-semibold text-base leading-tight">CosapIA</p>
-        <p className="text-navy-200 text-xs">Evaluación crediticia</p>
+        <p className="text-navy-200 text-xs">Crédito hipotecario</p>
       </div>
       <div className="ml-auto flex items-center gap-2 shrink-0">
         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

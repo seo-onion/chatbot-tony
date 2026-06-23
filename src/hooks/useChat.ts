@@ -11,7 +11,7 @@ export type Message = {
 const WELCOME: Message = {
   id: 'welcome',
   role: 'model',
-  text: '👋 ¡Hola! Soy CosapIA y voy a ayudarte a saber si calificas para un crédito.\nTe haré algunas preguntas rápidas sobre tu situación financiera.\n\n¿Comenzamos?\n• Sí, vamos\n• Tengo una duda primero',
+  text: '🏠 ¡Hola! Soy CosapIA y voy a ayudarte a saber si calificas para un crédito hipotecario.\nTe haré algunas preguntas sobre el inmueble y tu situación financiera.\n\n¿Comenzamos?\n• Sí, vamos\n• Tengo una duda primero',
 };
 
 export function useChat() {
