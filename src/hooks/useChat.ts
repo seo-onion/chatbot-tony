@@ -36,7 +36,8 @@ export function useChat() {
         ...prev,
         { id: `m-${Date.now()}`, role: 'model', text: result.response.text() },
       ]);
-    } catch {
+    } catch (err) {
+      console.error('[CosapIA] Gemini API error:', err);
       setMessages(prev => [
         ...prev,
         { id: `e-${Date.now()}`, role: 'model', text: 'Ocurrió un error. Por favor intenta nuevamente.' },
